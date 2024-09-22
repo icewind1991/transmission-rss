@@ -17,8 +17,8 @@ pub struct Persistence {
 #[serde(try_from = "RawTransmission")]
 pub struct Transmission {
     pub url: String,
-    pub username: String,
-    pub password: String,
+    pub username: Option<String>,
+    pub password: Option<String>,
 }
 
 impl TryFrom<RawTransmission> for Transmission {
@@ -26,10 +26,11 @@ impl TryFrom<RawTransmission> for Transmission {
 
     fn try_from(value: RawTransmission) -> Result<Self, Self::Error> {
         let password = match value.password {
-            TransmissionPassword::Raw { password } => password,
-            TransmissionPassword::File { password_file } => {
-                read_to_string(password_file)?.trim().to_string()
+            Some(TransmissionPassword::Raw { password }) => Some(password),
+            Some(TransmissionPassword::File { password_file }) => {
+                Some(read_to_string(password_file)?.trim().to_string())
             }
+            None => None,
         };
         Ok(Transmission {
             url: value.url,
@@ -42,9 +43,10 @@ impl TryFrom<RawTransmission> for Transmission {
 #[derive(Serialize, Deserialize, Debug, Clone, PartialEq)]
 pub struct RawTransmission {
     pub url: String,
-    pub username: String,
-    #[serde(flatten)]
-    pub password: TransmissionPassword,
+    #[serde(default)]
+    pub username: Option<String>,
+    #[serde(flatten, default)]
+    pub password: Option<TransmissionPassword>,
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone, PartialEq)]

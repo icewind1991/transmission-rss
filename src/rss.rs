@@ -18,11 +18,19 @@ pub async fn process_feed(item: RssList, cfg: Config) -> Result<i32, Box<dyn Err
     let channel = Channel::read_from(&content[..])?;
 
     // Creates a new connection
-    let basic_auth = BasicAuth {
-        user: cfg.transmission.username.clone(),
-        password: cfg.transmission.password.clone(),
+    let client = match (
+        cfg.transmission.username.as_deref(),
+        cfg.transmission.password.as_deref(),
+    ) {
+        (Some(username), Some(password)) => {
+            let basic_auth = BasicAuth {
+                user: username.into(),
+                password: password.into(),
+            };
+            TransClient::with_auth(&cfg.transmission.url, basic_auth)
+        }
+        _ => TransClient::new(&cfg.transmission.url),
     };
-    let client = TransClient::with_auth(&cfg.transmission.url, basic_auth);
 
     // Filters the results
     let results: Vec<&Item> = channel
